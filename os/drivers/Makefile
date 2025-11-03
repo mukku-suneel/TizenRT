@@ -148,6 +148,8 @@ ifeq ($(CONFIG_VIRTKEY),y)
 endif
 endif
 
+CSRCS += cpu/cpu_state.c
+
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))
 
