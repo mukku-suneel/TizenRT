@@ -22,6 +22,7 @@
 
 #include <tinyara/config.h>
 #include <tinyara/cpu_state.h>
+#include <tinyara/cpu_driver.h>
 #include <debug.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -30,8 +31,18 @@
 #include "amebasmart_cpu.h"
 
 
+/**************************************************************
+        board_cpu_initialize()
+            +- ops = cpu_arch_initialize()
+            +- cpu_driver_register(1, ops)
+                   +- alloc cpu_dev_s {cpu=1, ops=ops}
+                   +- register_driver("/dev/cpu1")
+***************************************************************/
+
 int board_cpu_initialize(void)
 {
+    int ret;
+
 #ifdef CONFIG_SMP
     const struct cpu_arch_ops_s *ops = up_cpuinitialize();
     if (!ops) {
@@ -42,6 +53,18 @@ int board_cpu_initialize(void)
     /* Initialize the global pointer to architecture-specific CPU operations */
     g_cpu_arch_ops = ops;
 
+#ifdef CONFIG_CPU_DRIVER
+    /* Register secondary CPUs with its ops */
+    for(int cpu = 1; cpu < CONFIG_SMP_NCPUS; cpu++) {
+        ret = cpu_driver_register(cpu, ops);
+        if (ret < 0) {
+            lldbg("Failed to register cpu%d: %d\n", cpu, ret);
+            return ret;
+        }
+    }
+
+    lldbg("CPU lifecycle ready for secondary cpus\n");
+#endif
 #endif  /* CONFIG_SMP */
 
     return OK;
